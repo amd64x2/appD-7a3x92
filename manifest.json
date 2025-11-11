@@ -4,5 +4,13 @@
   "start_url": "./pd39.html",
   "display": "standalone",
   "background_color": "#111111",
-  "theme_color": "#111111"
+  "theme_color": "#111111",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' fill='%23111'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-size='256' fill='%23fff'>B</text></svg>",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
 }
