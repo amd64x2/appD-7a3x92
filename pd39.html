@@ -5,17 +5,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Çizgi Kontrol Paneli</title>
-     <!-- PWA manifest -->
-  <link rel="manifest" href="manifest.json" />
-  <meta name="theme-color" content="#222222" />
+      <!-- PWA manifest -->
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#111111">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="BenimApp">
+    
     <script>
     // Service Worker kaydı
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('service-worker.js')
-        .then(() => console.log('Service Worker yüklendi'))
+      navigator.serviceWorker.register('./service-worker.js')
+        .then(reg => console.log('Service Worker yüklendi:', reg))
         .catch(err => console.error('SW hatası:', err));
     }
-  </script>
+    </script>
     <style>
         /* CSS Sıfırlama ve Temel Ayarlar */
         * {
