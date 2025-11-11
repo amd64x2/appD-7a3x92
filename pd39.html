@@ -5,7 +5,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Çizgi Kontrol Paneli</title>
-    <link rel="manifest" href="manifest.json">
+     <!-- PWA manifest -->
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#222222" />
+    <script>
+    // Service Worker kaydı
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('service-worker.js')
+        .then(() => console.log('Service Worker yüklendi'))
+        .catch(err => console.error('SW hatası:', err));
+    }
+  </script>
     <style>
         /* CSS Sıfırlama ve Temel Ayarlar */
         * {
