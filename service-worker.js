@@ -1,17 +1,18 @@
 const CACHE_NAME = 'myapp-cache-v1';
 const FILES_TO_CACHE = [
-  '/pd39.html',
-  '/manifest.json'
+  './pd39.html',
+  './manifest.json'
 ];
 
 // Kurulum (install)
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => {
-      console.log('Dosyalar cache’e ekleniyor');
+      console.log('Dosyalar cache\'e ekleniyor');
       return cache.addAll(FILES_TO_CACHE);
     })
   );
+  self.skipWaiting();
 });
 
 // Ağ isteği yakalama (offline)
@@ -23,7 +24,7 @@ self.addEventListener('fetch', event => {
   );
 });
 
-// Eski cache’leri temizle
+// Eski cache'leri temizle
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(keyList =>
@@ -37,4 +38,5 @@ self.addEventListener('activate', event => {
       )
     )
   );
+  self.clients.claim();
 });
