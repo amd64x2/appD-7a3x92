@@ -1,7 +1,7 @@
 {
   "name": "Çizgi Kontrol Paneli",
   "short_name": "ÇizgiApp",
-  "start_url": "/",
+  "start_url": "/pd39.html",
   "scope": "/",
   "display": "standalone",
   "orientation": "any",
