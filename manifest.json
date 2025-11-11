@@ -1,0 +1,8 @@
+{
+    "name": "Uygulamam",
+    "short_name": "App",
+    "start_url": "pdTool-39.html",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "theme_color": "#000000"
+}
