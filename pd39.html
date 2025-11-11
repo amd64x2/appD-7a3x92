@@ -1,0 +1,2806 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Çizgi Kontrol Paneli</title>
+    <link rel="manifest" href="manifest.json">
+    <style>
+        /* CSS Sıfırlama ve Temel Ayarlar */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            overflow: hidden;
+            background: #1a1a1a;
+            font-family: Arial, sans-serif;
+            height: 100vh;
+            position: fixed;
+            width: 100vw;
+        }
+
+        #main-container {
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* ------------------------------------- */
+        /* HEADER */
+        /* ------------------------------------- */
+        #info-header {
+            width: 100%;
+            position: fixed;
+            height: 60px;
+            top: 0;
+            left: 0;
+            z-index: 100;
+            background: rgba(0, 0, 0, 0.7);
+            overflow-x: auto;
+            overflow-y: hidden;
+        }
+
+        .controls-wrapper {
+            display: flex;
+            flex-wrap: nowrap;
+            gap: 15px;
+            justify-content: flex-start;
+            align-items: center;
+            height: 100%;
+            padding: 0 15px;
+            min-width: max-content;
+        }
+
+        .input-group {
+            display: flex;
+            align-items: center;
+        }
+
+        .input-group.full-width {
+            width: auto;
+            margin: 0;
+            padding: 0;
+            border: none;
+        }
+
+        .input-label {
+            min-width: 60px;
+            font-weight: bold;
+            margin-right: 5px;
+            font-size: 15px;
+            color: rgb(255, 255, 255);
+        }
+
+        .value-control {
+            display: flex;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 2px 5px;
+        }
+
+        .value-btn {
+            width: 30px;
+            height: 30px;
+            border: none;
+            border-radius: 50%;
+            background: #667eea;
+            color: white;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 3px;
+            transition: background 0.1s;
+        }
+
+        .value-btn:active {
+            background: #764ba2;
+        }
+
+        .value-display {
+            min-width: 30px;
+            text-align: center;
+            font-weight: bold;
+            margin: 0 5px;
+            font-size: 14px;
+        }
+
+        #frameWidth {
+            font-size: 14px;
+            font-weight: bold;
+            color: #44ff44;
+            margin-left: 5px;
+        }
+
+        /* ------------------------------------- */
+        /* FOOTER */
+        /* ------------------------------------- */
+        #info-footer {
+            width: 100%;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            z-index: 100;
+            background: rgba(0, 0, 0, 0.7);
+            pointer-events: none;
+            padding: 10px 15px;
+            transition: transform 0.3s ease;
+        }
+
+        #info-footer.collapsed {
+            transform: translateY(calc(100% - 40px));
+            /*100% = Footer'ın toplam yüksekliği (yaklaşık 150px) 150 - 70 daha az kayar*/
+        }
+
+        #footer-toggle {
+            position: absolute;
+            top: 2px;
+            right: 10px;
+            width: 35px;
+            height: 35px;
+            background: rgba(102, 126, 234, 0.9);
+            border: none;
+            border-radius: 50%;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: auto;
+            z-index: 101;
+            transition: transform 0.3s ease, background 0.2s;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        #footer-toggle:hover {
+            background: rgba(118, 75, 162, 0.9);
+            transform: scale(1.1);
+        }
+
+        #footer-toggle:active {
+            transform: scale(0.95);
+        }
+
+        #info-footer>div,
+        #info-footer canvas,
+        #info-footer * {
+            pointer-events: auto;
+        }
+
+        #info-footer>div {
+            display: grid;
+            grid-template-columns: 0.5fr 1fr 1.fr 0.5fr 0.5fr;
+            gap: 15px;
+            height: 130px;
+            max-height: 130px;
+        }
+
+        .distance-graphic {
+            /* background: rgba(255, 255, 255, 0.05);*/
+            border-radius: 4px;
+            position: relative;
+            padding: 0;
+            height: 100%;
+            max-height: 130px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .distance-graphic canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            max-height: 130px;
+            /* background: rgba(0, 0, 0, 0.3);*/
+            /* background: transparent; */
+            border-radius: 4px;
+        }
+
+        #info-footer h3 {
+            margin-bottom: 8px;
+            color: #667eea;
+            font-size: 14px;
+        }
+
+        #info-footer p {
+            margin-top: 0px;
+            font-size: 10px;
+            opacity: 0.6;
+        }
+
+        #save-area {
+            display: none;
+        }
+
+        #action-area {
+            display: none;
+        }
+
+        .distance-value {
+            text-align: center;
+            margin-top: 0px;
+            font-size: 13px;
+            font-weight: bold;
+        }
+
+        /* ------------------------------------- */
+        /* CANVAS AREA */
+        /* ------------------------------------- */
+        #canvas-area {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 1;
+        }
+
+        #canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* ------------------------------------- */
+        /* TUTACAKLAR (HANDLE'lar) */
+        /* ------------------------------------- */
+        .vertical-handle,
+        .horizontal-handle,
+        .new-vertical-handle {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            cursor: grab;
+            touch-action: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+            transition: transform 0.1s;
+            z-index: 20;
+        }
+
+        .vertical-handle,
+        .new-vertical-handle {
+            transform: translateX(-50%);
+        }
+
+        .vertical-handle:active,
+        .new-vertical-handle:active {
+            transform: translateX(-50%) scale(1.1);
+        }
+
+        .horizontal-handle {
+            transform: translateY(-50%);
+        }
+
+        .horizontal-handle:active {
+            transform: translateY(-50%) scale(1.1);
+        }
+
+        #leftHandle {
+            background: #ff4444;
+            border: 4px solid #fff;
+        }
+
+        #rightHandle {
+            background: #4444ff;
+            border: 4px solid #fff;
+        }
+
+        #topHandle {
+            background: #44ff44;
+            border: 4px solid #fff;
+        }
+
+        #bottomHandle {
+            background: #ffaa44;
+            border: 4px solid #fff;
+        }
+
+        #rHandle {
+            background: rgba(255, 102, 171, 0.5);
+            border: 3px solid rgba(255, 255, 255, 0.5);
+            font-weight: bold;
+            color: white;
+        }
+
+        #lHandle {
+            background: rgba(102, 170, 255, 0.5);
+            border: 3px solid rgba(255, 255, 255, 0.5);
+            font-weight: bold;
+            color: white;
+        }
+
+        .input-group.frame-display-group {
+            margin-left: auto;
+        }
+
+        /* ------------------------------------- */
+        /* BUTONLAR */
+        /* ------------------------------------- */
+        .header-button {
+            padding: 6px 15px;
+            font-size: 14px;
+            font-weight: bold;
+            color: white;
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+
+        #open-camera-button {
+            background: linear-gradient(135deg, #c54040 0%, #c54040 100%);
+        }
+
+        #calibrate-button {
+            background: linear-gradient(135deg, #4444ff 0%, #4444ff 100%);
+        }
+
+        #save-button {
+            background: linear-gradient(135deg, #fcc300 0%, #fcc300 100%);
+            width: 100%;
+            padding: 8px 20px;
+            font-size: 12px;
+            color: #292f35;
+        }
+
+        .refresh-btn {
+            padding: 6px 15px;
+            font-size: 14px;
+            font-weight: bold;
+            color: white;
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            transition: all 0.2s ease;
+            white-space: nowrap;
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+
+            margin: 0 15px 0 25px;
+        }
+
+        #patient-name-input {
+            width: 100%;
+            padding: 8px 12px;
+            font-size: 12px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            outline: none;
+            transition: all 0.2s;
+        }
+
+        #patient-name-input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        #patient-name-input:focus {
+            border-color: #fcc300;
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+
+
+        .header-button:active {
+            transform: translateY(0);
+        }
+
+        .save-button-container {
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: stretch;
+            gap: 8px;
+            padding: 10px;
+            padding-right: 40px;
+        }
+
+        .save-button-container.visible {
+            display: flex;
+        }
+
+        /* ------------------------------------- */
+        /* CAM TOGGLE STYLES */
+        /* ------------------------------------- */
+        .cam-toggle-container {
+            display: none;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .cam-toggle-container.visible {
+            display: flex;
+        }
+
+        .toggle-button {
+            /* Mevcut stillerinizin üzerine ekleme veya değişiklikler */
+
+            /* Boyutu 30x30 yap */
+            width: 50px;
+            height: 50px;
+
+            /* İç dolguyu kaldır veya azalt, metni ortalamak için */
+            padding: 0;
+
+            /* Köşe yuvarlamayı (border-radius) boyutun yarısına ayarla */
+            border-radius: 50%;
+            /* Daire yapmak için en önemli kural */
+
+            /* Metni butonda ortalamak için (Eğer butonun içinde metin varsa) */
+            display: flex;
+            align-items: center;
+            /* Dikeyde ortala */
+            justify-content: center;
+            /* Yatayda ortala */
+
+            /* Font boyutu daireye sığacak şekilde küçültülebilir */
+            font-size: 14px;
+
+            /* Diğer mevcut stiller */
+            font-weight: bold;
+            color: white;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+
+        /* Mevcut on/off durum stilleri aynı kalabilir */
+        .toggle-button.off {
+            background: linear-gradient(135deg, #666 0%, #999 100%);
+        }
+
+        .toggle-button.on {
+            background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+        }
+
+        .cam-control {
+            display: flex;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 2px 5px;
+        }
+
+        .cam-diameter-input {
+            width: 45px;
+            text-align: center;
+            background: transparent;
+            border: none;
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
+            outline: none;
+        }
+
+
+
+
+        /* PROGRESSIVE TASARIM SEÇİCİ */
+        .progressive-selector-container {
+            display: none;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .progressive-selector-container.visible {
+            display: flex;
+        }
+
+        .progressive-select {
+            padding: 8px 15px;
+            font-size: 14px;
+            font-weight: bold;
+            color: white;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            outline: none;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            transition: all 0.2s ease;
+        }
+
+        .progressive-select option {
+            background: #1a1a1a;
+            color: white;
+        }
+
+        /* GÖRÜNÜRLÜK KONTROLLERİ */
+        .cam-controls-container {
+            display: none;
+        }
+
+        .cam-controls-container.visible {
+            display: flex !important;
+        }
+
+        .progressive-selector-container {
+            display: none;
+        }
+
+        .progressive-selector-container.visible {
+            display: flex !important;
+        }
+
+        .fullscreen-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 36px;
+            /* 🔹 ikon büyütüldü */
+            cursor: pointer;
+            margin-right: 0px;
+            /* 🔹 "Ekartman:" ile araya boşluk */
+            transition: transform 0.2s, color 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .fullscreen-btn:hover {
+            transform: scale(1.2);
+            color: #00e0ff;
+        }
+
+
+        #open-gallery-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        #open-gallery-button:hover {
+            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+        }
+
+
+        /* YENİ: Baz resim butonu için stil */
+        #save-base-button {
+            background: linear-gradient(135deg, #484849 0%, #484849 100%);
+            width: 100%;
+            padding: 8px 20px;
+            font-size: 12px;
+            color: white;
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            transition: all 0.2s ease;
+            white-space: nowrap;
+            font-weight: bold;
+        }
+
+
+        #save-base-button:active {
+            transform: translateY(0);
+        }
+    </style>
+</head>
+
+<body>
+
+    <body>
+        <div id="main-container">
+            <div id="info-header">
+                <div class="controls-wrapper">
+                    <div class="input-group">
+                        <div class="input-label">Ekartman:</div>
+                        <div class="value-control">
+                            <button class="value-btn" id="ekartman-minus">-</button>
+                            <div class="value-display" id="ekartmanValue" style="color: white;">52</div>
+                            <button class="value-btn" id="ekartman-plus">+</button>
+                        </div>
+                    </div>
+
+                    <div class="input-group">
+                        <div class="input-label">Köprü:</div>
+                        <div class="value-control">
+                            <button class="value-btn" id="kopru-minus">-</button>
+                            <div class="value-display" id="kopruValue" style="color: white;">18</div>
+                            <button class="value-btn" id="kopru-plus">+</button>
+                        </div>
+                    </div>
+                    <div id="frameWidth">122 mm</div>
+                    <!-- Kamera butonundan önce bu kodu ekleyin -->
+                    <button id="open-gallery-button" class="header-button">...</button>
+                    <input type="file" id="gallery-input" accept="image/*" style="display: none;">
+
+                    <!-- Mevcut kamera butonu -->
+                    <button id="open-camera-button" class="header-button">KAMERA</button>
+                    <button id="calibrate-button" class="header-button">KALİBRE</button>
+
+                    <!-- CAM TOGGLE BÖLÜMÜ -->
+                    <div class="cam-toggle-container" id="camToggleContainer">
+                        <button id="cam-toggle-button" class="toggle-button off">CAM</button>
+                        <div class="cam-control">
+                            <button class="value-btn" id="cam-diameter-minus">-</button>
+                            <input type="text" id="cam-diameter-input" class="cam-diameter-input" value="55" readonly>
+                            <button class="value-btn" id="cam-diameter-plus">+</button>
+                        </div>
+                    </div>
+
+                    <!-- PROGRESSIVE TASARIM SEÇİCİ -->
+                    <div class="progressive-selector-container" id="progressiveSelector">
+                        <select id="progressive-design-select" class="progressive-select">
+                            <option value="">Tasarım Seçin</option>
+                            <option value="standart">Ekonomik</option>
+                            <option value="ultra">Standart</option>
+                            <option value="ultraWide">Premium</option>
+                            <option value="digital">Free Form</option>
+                        </select>
+                    </div>
+
+                    <div class="input-group frame-display-group">
+                        <div class="input-label" style="min-width: auto; font-weight: bold; margin-right: 5px;"> </div>
+                        <button id="reload-btn" class="header-btn refresh-btn" title="Yenile">YENİ</button>
+                        <button id="fullscreen-btn" class="fullscreen-btn" title="Tam Ekran">⛶</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="info-footer">
+                <button id="footer-toggle" title="Footer Aç/Kapa">▼</button>
+                <div
+                    style="display: flex; justify-content: space-between; align-items: center; width: 100%; height: 100%;">
+
+                    <!-- SOL: Sağ Göz Ölçümleri -->
+                    <div
+                        style="display: flex; flex-direction: column; justify-content: center; gap: 8px; font-size: 12px; min-width: 120px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <strong style="color: #ff66aa; min-width: 80px; font-size: 14px;">Sağ PD</strong>
+                            <span id="right-pd-result" style="color: #ff66aa; font-size: 14px;font-weight: bold;">0,00
+                                mm</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <strong style="color: #ff66aa; min-width: 80px; font-size: 14px;">Montaj Yük.</strong>
+                            <span id="right-montage-result"
+                                style="color: #ff66aa; font-size: 14px;font-weight: bold;">0,00 mm</span>
+                        </div>
+                    </div>
+
+                    <!-- ORTA-1: R Grafiği -->
+                    <div class="distance-graphic">
+                        <canvas id="r-graphic-canvas"></canvas>
+                    </div>
+
+                    <!-- ORTA-2: L Grafiği -->
+                    <div class="distance-graphic">
+                        <canvas id="l-graphic-canvas"></canvas>
+                    </div>
+
+                    <!-- SAĞ: Sol Göz Ölçümleri -->
+                    <div
+                        style="display: flex; flex-direction: column; justify-content: center; gap: 8px; font-size: 12px; min-width: 120px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <strong style="color: #66aaff; min-width: 80px; font-size: 14px;">Sol PD</strong>
+                            <span id="left-pd-result" style="color: #66aaff; font-size: 14px;font-weight: bold;">0,00
+                                mm</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <strong style="color: #66aaff; min-width: 80px; font-size: 14px;">Montaj Yük.</strong>
+                            <span id="left-montage-result"
+                                style="color: #66aaff; font-size: 14px;font-weight: bold;">0,00 mm</span>
+                        </div>
+                    </div>
+
+                    <!-- EN SAĞ: Hasta Adı ve Kaydet Butonu -->
+                    <div class="save-button-container">
+                        <input type="text" id="patient-name-input" placeholder="Ad Soyad">
+                        <button id="save-button" class="header-button">KAYDET</button>
+                        <button id="save-base-button" class="header-button">Baz Resim</button>
+                    </div>
+
+                </div>
+            </div>
+
+
+
+
+            <div id="canvas-area">
+                <canvas id="canvas"></canvas>
+
+                <div id="leftHandle" class="vertical-handle">🔴</div>
+                <div id="rightHandle" class="vertical-handle">🔵</div>
+                <div id="topHandle" class="horizontal-handle">🟢</div>
+                <div id="bottomHandle" class="horizontal-handle">🟠</div>
+                <div id="rHandle" class="new-vertical-handle">R</div>
+                <div id="lHandle" class="new-vertical-handle">L</div>
+            </div>
+
+            <!-- Kamera Input (gizli) -->
+            <input type="file" id="camera-input" accept="image/*" capture="environment" style="display: none;">
+        </div>
+    </body>
+</body>
+
+</html>
+<script>
+
+
+    // PROGRESSIVE TASARIM NOKTALARI
+    const progressiveDesigns = {
+        'standart': [
+            { x: -0.99, y: -0.22 },  // Nokta 1
+            { x: -0.50, y: -0.09 },  // Nokta 2
+            { x: -0.28, y: 0.07 },  // Nokta 3
+            { x: -0.23, y: 0.27 },  // Nokta 4
+            { x: -0.37, y: 0.42 },  // Nokta 5
+            { x: -0.32, y: 0.67 },  // Nokta 6
+            { x: -0.45, y: 0.98 },  // Nokta 7
+            { x: -0.85, y: 0.57 },  // Nokta 8
+            { x: -1.02, y: 0.20 }  // Nokta 9
+        ],
+        'ultra': [
+            { x: -1.01, y: -0.07 },  // Nokta 1
+            { x: -0.53, y: 0.00 },  // Nokta 2
+            { x: -0.28, y: 0.16 },  // Nokta 3
+            { x: -0.28, y: 0.33 },  // Nokta 4
+            { x: -0.34, y: 0.54 },  // Nokta 5
+            { x: -0.42, y: 0.66 },  // Nokta 6
+            { x: -0.73, y: 0.79 },  // Nokta 7
+            { x: -0.94, y: 0.39 },  // Nokta 8
+            { x: -1.01, y: 0.13 }  // Nokta 9
+        ],
+        'ultraWide': [
+            { x: -0.96, y: 0.13 },  // Nokta 1
+            { x: -0.67, y: 0.17 },  // Nokta 2
+            { x: -0.53, y: 0.28 },  // Nokta 3
+            { x: -0.45, y: 0.39 },  // Nokta 4
+            { x: -0.50, y: 0.52 },  // Nokta 5
+            { x: -0.53, y: 0.62 },  // Nokta 6
+            { x: -0.71, y: 0.69 },  // Nokta 7
+            { x: -0.94, y: 0.39 }  // Nokta 8
+        ],
+        'digital': [
+            { x: -0.92, y: -0.20 },
+            { x: -0.95, y: 0.00 },
+            { x: -0.92, y: 0.25 },
+            { x: -0.78, y: 0.50 },
+            { x: -0.58, y: 0.68 },
+            { x: -0.38, y: 0.62 },
+            { x: -0.28, y: 0.35 },
+            { x: -0.26, y: 0.05 },
+            { x: -0.28, y: -0.25 },
+            { x: -0.48, y: -0.40 },
+            { x: -0.72, y: -0.35 }
+        ]
+    };
+
+    let currentProgressiveDesign = null;
+
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const canvasArea = document.getElementById('canvas-area');
+    const infoHeader = document.getElementById('info-header');
+    const actionArea = document.getElementById('action-area');
+
+    // Handle elementleri
+    const leftHandle = document.getElementById('leftHandle');
+    const rightHandle = document.getElementById('rightHandle');
+    const topHandle = document.getElementById('topHandle');
+    const bottomHandle = document.getElementById('bottomHandle');
+    const rHandle = document.getElementById('rHandle');
+    const lHandle = document.getElementById('lHandle');
+
+    // Çizgi pozisyonları
+    let leftLineX = 0;
+    let rightLineX = 0;
+    let topLineY = 0;
+    let bottomLineY = 0;
+    let rLineX = 0;
+    let rLineY = 0;
+    let lLineX = 0;
+    let lLineY = 0;
+
+    // Sürükleme durumu
+    let dragging = null;
+    let dragOffsetX = 0;
+    let dragOffsetY = 0;
+
+    const HANDLE_SIZE = 50;
+    const OFFSET = 20;
+
+    // Değer değişkenleri
+    let ekartmanValue = 52;
+    let kopruValue = 18;
+
+    // Kalibrasyon değişkenleri
+    let isCalibrated = false;
+    let calibrationPixels = 0;
+    let calibrationMM = 0;
+
+    // Resim değişkenleri
+    let loadedImage = null;
+    let imageLoaded = false;
+    let imageScale = { x: 0, y: 0, width: 0, height: 0 };
+
+    // Buton sürekli basılı tutma değişkenleri
+    let changeInterval;
+    let changeTimeout;
+
+    // Global değişkenler
+    let solCerceveMerkezX = 0;
+    let solCerceveMerkezY = 0;
+    let sagCerceveMerkezX = 0;
+    let sagCerceveMerkezY = 0;
+    let footerCollapsed = false;
+
+    // CAM DEĞİŞKENLERİ
+    let camEnabled = false;
+    let camDiameterMM = 55;
+    let camX = 0;
+    let camY = 0;
+    let isCamDragging = false;
+    let camDragOffsetX = 0;
+    let camDragOffsetY = 0;
+
+    // ----------------------------------------------------
+    // EKARTMAN VE KÖPRÜ FONKSİYONLARI
+    // ----------------------------------------------------
+
+    function updateFrameWidth() {
+        const totalWidth = ekartmanValue * 2 + kopruValue;
+        document.getElementById('frameWidth').textContent = `${totalWidth} mm`;
+
+        if (isCalibrated) {
+            calibrationMM = totalWidth;
+            calculateMeasurements();
+        }
+
+        draw();
+    }
+
+    function changeValue(delta, type) {
+        if (type === 'ekartman') {
+            ekartmanValue = Math.max(40, Math.min(65, ekartmanValue + delta));
+            document.getElementById('ekartmanValue').textContent = ekartmanValue;
+        } else if (type === 'kopru') {
+            kopruValue = Math.max(10, Math.min(25, kopruValue + delta));
+            document.getElementById('kopruValue').textContent = kopruValue;
+        }
+        updateFrameWidth();
+    }
+
+    function startChange(delta, type, e) {
+        if (e && e.type === 'touchstart') {
+            e.preventDefault();
+        }
+
+        changeValue(delta, type);
+
+        changeTimeout = setTimeout(() => {
+            changeInterval = setInterval(() => {
+                changeValue(delta, type);
+            }, 100);
+        }, 300);
+
+        document.addEventListener('mouseup', endChange);
+        document.addEventListener('touchend', endChange);
+        document.addEventListener('touchcancel', endChange);
+    }
+
+    function endChange() {
+        clearTimeout(changeTimeout);
+        clearInterval(changeInterval);
+        document.removeEventListener('mouseup', endChange);
+        document.removeEventListener('touchend', endChange);
+        document.removeEventListener('touchcancel', endChange);
+    }
+
+    // ----------------------------------------------------
+    // KAMERA VE RESİM YÖNETİMİ
+    // ----------------------------------------------------
+
+    function openCamera() {
+        document.getElementById('camera-input').click();
+        cameraInput.onchange = () => {
+            // Resim seçildiğinde tam ekranı tekrar aç
+            if (!document.fullscreenElement) {
+                //  document.documentElement.requestFullscreen().catch(err => console.error(err));
+            }
+        };
+    }
+
+
+    function handleImageUpload(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function (event) {
+            const img = new Image();
+            img.onload = function () {
+                loadedImage = img;
+                imageLoaded = true;
+
+                resizeCanvas();
+                calculateImageScale();
+                draw();
+
+                console.log(`Resim yüklendi: ${img.width}x${img.height}`);
+            };
+            img.src = event.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+
+    // ----------------------------------------------------
+    // RESİM EN-BOY ORANI HESAPLAMA
+    // ----------------------------------------------------
+
+    function calculateImageScale() {
+        if (!loadedImage) return;
+
+        const canvasAspect = canvas.width / canvas.height;
+        const imageAspect = loadedImage.width / loadedImage.height;
+
+        if (imageAspect > canvasAspect) {
+            imageScale.width = canvas.width;
+            imageScale.height = canvas.width / imageAspect;
+            imageScale.x = 0;
+            imageScale.y = (canvas.height - imageScale.height) / 2;
+        } else {
+            imageScale.height = canvas.height;
+            imageScale.width = canvas.height * imageAspect;
+            imageScale.x = (canvas.width - imageScale.width) / 2;
+            imageScale.y = 0;
+        }
+    }
+
+    // ----------------------------------------------------
+    // R ve L hariç diğer tutamaçları gizle
+    // ----------------------------------------------------
+    function hideNonRlHandles() {
+        leftHandle.style.display = 'none';
+        rightHandle.style.display = 'none';
+        topHandle.style.display = 'none';
+        bottomHandle.style.display = 'none';
+        rHandle.style.display = 'flex';
+        lHandle.style.display = 'flex';
+    }
+
+    function showAllHandles() {
+        leftHandle.style.display = 'flex';
+        rightHandle.style.display = 'flex';
+        topHandle.style.display = 'flex';
+        bottomHandle.style.display = 'flex';
+        rHandle.style.display = 'flex';
+        lHandle.style.display = 'flex';
+    }
+
+
+
+    // ----------------------------------------------------
+    // CANVAS ÜZERİNE ÖLÇÜM BİLGİLERİNİ YAZMA
+    // ----------------------------------------------------
+    function drawMeasurementsOnCanvas() {
+        if (!isCalibrated) return;
+
+        const pixelToMM = calibrationMM / calibrationPixels;
+        const widthPixels = Math.abs(rightLineX - leftLineX) - 3;
+        const widthMM = (widthPixels * pixelToMM).toFixed(2);
+        const heightPixels = Math.abs(bottomLineY - topLineY) - 3;
+        const heightMM = (heightPixels * pixelToMM).toFixed(2);
+
+        const text1 = `Genişlik: ${widthMM} mm`;
+        const text2 = `Yükseklik: ${heightMM} mm`;
+
+        ctx.font = "12px Arial";
+        const text1Metrics = ctx.measureText(text1);
+        const text2Metrics = ctx.measureText(text2);
+        const maxTextWidth = Math.max(text1Metrics.width, text2Metrics.width);
+
+        const FONT_HEIGHT = 14;
+        const HORIZONTAL_PADDING = 10;
+        const VERTICAL_PADDING = 6;
+        const LINE_SPACING = 4;
+
+        const rectWidth = maxTextWidth + HORIZONTAL_PADDING * 2;
+        const rectHeight = (FONT_HEIGHT + VERTICAL_PADDING) * 2 + LINE_SPACING;
+
+        const rectX = leftLineX + 10;
+        const rectY = topLineY - 50;
+        const cornerRadius = 5;
+
+        // Siyah zemin
+        ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+        ctx.beginPath();
+        ctx.moveTo(rectX + cornerRadius, rectY);
+        ctx.lineTo(rectX + rectWidth - cornerRadius, rectY);
+        ctx.arcTo(rectX + rectWidth, rectY, rectX + rectWidth, rectY + cornerRadius, cornerRadius);
+        ctx.lineTo(rectX + rectWidth, rectY + rectHeight - cornerRadius);
+        ctx.arcTo(rectX + rectWidth, rectY + rectHeight, rectX + rectWidth - cornerRadius, rectY + rectHeight, cornerRadius);
+        ctx.lineTo(rectX + cornerRadius, rectY + rectHeight);
+        ctx.arcTo(rectX, rectY + rectHeight, rectX, rectY + rectHeight - cornerRadius, cornerRadius);
+        ctx.lineTo(rectX, rectY + cornerRadius);
+        ctx.arcTo(rectX, rectY, rectX + cornerRadius, rectY, cornerRadius);
+        ctx.closePath();
+        ctx.fill();
+
+        // Beyaz yazılar
+        //ctx.fillStyle = "rgba(255, 165, 0, 1.0)"; //turuncu
+        ctx.fillStyle = "rgba(255, 255, 0, 1.0)"; // sarı
+
+        ctx.textAlign = "left";
+        ctx.textBaseline = "middle";
+
+        const text1Y = rectY + VERTICAL_PADDING + FONT_HEIGHT / 2;
+        const text2Y = text1Y + FONT_HEIGHT + LINE_SPACING;
+
+        ctx.fillText(text1, rectX + HORIZONTAL_PADDING, text1Y);
+        ctx.fillText(text2, rectX + HORIZONTAL_PADDING, text2Y);
+    }
+
+
+
+
+
+
+
+
+
+
+
+    // ----------------------------------------------------
+    // KUTULAMA FONKSİYONU - DÜZELTİLMİŞ
+    // ----------------------------------------------------
+    function kutula() {
+        const ekartmanMM = parseInt(document.getElementById('ekartmanValue').textContent);
+        const pixelToMM = calibrationMM / calibrationPixels;
+        const ekartmanPixels = ekartmanMM / pixelToMM;
+        const lineOffset = 1.5;
+
+        const solCerceve = {
+            x: leftLineX + lineOffset,
+            y: topLineY + lineOffset,
+            width: ekartmanPixels,
+            height: (bottomLineY - topLineY) - 3
+        };
+
+        const sagCerceve = {
+            x: rightLineX - lineOffset - ekartmanPixels,
+            y: topLineY + lineOffset,
+            width: ekartmanPixels,
+            height: (bottomLineY - topLineY) - 3
+        };
+
+        ctx.strokeStyle = '#FFFF00';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([]);
+        ctx.shadowBlur = 0;
+        ctx.shadowColor = '#FFFF00';
+
+        //  ctx.strokeRect(solCerceve.x, solCerceve.y, solCerceve.width, solCerceve.height);
+        // ctx.strokeRect(sagCerceve.x, sagCerceve.y, sagCerceve.width, sagCerceve.height);
+
+        // Tek büyük dikdörtgen - soldan sağa kadar
+        const buyukDikdortgen = {
+            x: solCerceve.x,
+            y: solCerceve.y,
+            width: (sagCerceve.x + sagCerceve.width) - solCerceve.x,
+            height: solCerceve.height
+        };
+        ctx.strokeRect(buyukDikdortgen.x, buyukDikdortgen.y, buyukDikdortgen.width, buyukDikdortgen.height);
+
+
+
+        solCerceveMerkezX = solCerceve.x + (solCerceve.width / 2);
+        solCerceveMerkezY = solCerceve.y + (solCerceve.height / 2);
+        sagCerceveMerkezX = sagCerceve.x + (sagCerceve.width / 2);
+        sagCerceveMerkezY = sagCerceve.y + (sagCerceve.height / 2);
+
+        const circleRadius = 7.5;
+        const circleColor = '#FFFF00';
+
+        ctx.fillStyle = circleColor;
+        ctx.strokeStyle = circleColor;
+        ctx.lineWidth = 1;
+        ctx.shadowBlur = 0;
+
+        ctx.beginPath();
+        ctx.arc(solCerceveMerkezX, solCerceveMerkezY, circleRadius, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(sagCerceveMerkezX, sagCerceveMerkezY, circleRadius, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = '#FFFF00';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([]);
+        ctx.shadowBlur = 0;
+
+        ctx.beginPath();
+        ctx.moveTo(solCerceve.x, solCerceveMerkezY);
+        ctx.lineTo(solCerceve.x + solCerceve.width, solCerceveMerkezY);
+        ctx.moveTo(solCerceveMerkezX, solCerceve.y);
+        ctx.lineTo(solCerceveMerkezX, solCerceve.y + solCerceve.height);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(sagCerceve.x, sagCerceveMerkezY);
+        ctx.lineTo(sagCerceve.x + sagCerceve.width, sagCerceveMerkezY);
+        ctx.moveTo(sagCerceveMerkezX, sagCerceve.y);
+        ctx.lineTo(sagCerceveMerkezX, sagCerceve.y + sagCerceve.height);
+        ctx.stroke();
+
+        ctx.shadowBlur = 0;
+
+        console.log(`Çerçeveler çizildi: Sol(${solCerceve.x.toFixed(1)}, ${solCerceve.y.toFixed(1)}, ${solCerceve.width.toFixed(1)}, ${solCerceve.height.toFixed(1)}) Sağ(${sagCerceve.x.toFixed(1)}, ${sagCerceve.y.toFixed(1)}, ${sagCerceve.width.toFixed(1)}, ${sagCerceve.height.toFixed(1)})`);
+    }
+
+    // ----------------------------------------------------
+    // KALİBRASYON FONKSİYONU - DÜZELTİLMİŞ
+    // ----------------------------------------------------
+
+    function calibrate() {
+        if (!imageLoaded) {
+            alert('⚠️ Lütfen önce fotoğraf yükleyin!');
+            return;
+        }
+
+        calibrationPixels = Math.abs(rightLineX - leftLineX) - 3;
+        calibrationMM = ekartmanValue * 2 + kopruValue;
+        isCalibrated = true;
+
+        const calibrateBtn = document.getElementById('calibrate-button');
+        calibrateBtn.textContent = 'KALİBRE ✓';
+        calibrateBtn.style.background = 'linear-gradient(135deg, #1a9147 0%, #1a9147 100%)';
+
+        // KAYDET BÖLÜMÜNÜ GÖSTER
+        document.querySelector('.save-button-container').classList.add('visible');
+
+        // CAM TOGGLE BÖLÜMÜNÜ GÖSTER
+        document.getElementById('camToggleContainer').classList.add('visible');
+
+        // PROGRESSIVE SELECTOR'ı GÖSTER - BU SATIR EKLENDİ
+        document.getElementById('progressiveSelector').classList.add('visible');
+
+        // Varsayılan progressive tasarımı ayarla
+        if (!currentProgressiveDesign) {
+            currentProgressiveDesign = 'standart';
+            const selectElement = document.getElementById('progressive-design-select');
+            if (selectElement) {
+                selectElement.value = 'standart';
+            }
+        }
+
+        // ÖNEMLİ: Önce kutula fonksiyonunu çağır ki cerceve merkezleri hesaplansın
+        hideNonRlHandles();
+        kutula();
+        calculateMeasurements();
+
+        // CAM'I SOL ÇERÇEVE MERKEZİNE YERLEŞTİR
+        camX = solCerceveMerkezX;
+        camY = solCerceveMerkezY;
+
+        console.log(`Cam SOL merkezine yerleştirildi: ${camX.toFixed(1)}, ${camY.toFixed(1)}`);
+        console.log(`Progressive tasarım: ${currentProgressiveDesign}`);
+
+        draw();
+        console.log(`Kalibrasyon yapıldı: ${calibrationPixels.toFixed(2)}px = ${calibrationMM}mm`);
+    }
+
+    // ----------------------------------------------------
+    // CAM FONKSİYONLARI
+    // ----------------------------------------------------
+
+    // -----------------------------------------------------------------------**** cam seçili ise diğerleni gizleMEZ  ***------toggleCam() ve draw()-----------------------------------------------------
+    function toggleCam2() {
+        camEnabled = !camEnabled;
+        const camButton = document.getElementById('cam-toggle-button');
+
+        if (camEnabled) {
+            camButton.classList.remove('off');
+            camButton.classList.add('on');
+            camButton.textContent = 'CAM ✓';
+        } else {
+            camButton.classList.remove('on');
+            camButton.classList.add('off');
+            camButton.textContent = 'CAM';
+        }
+
+        draw(); // Çizimleri yenile
+    }
+
+    function toggleCam() {
+        camEnabled = !camEnabled;
+        const camButton = document.getElementById('cam-toggle-button');
+
+        if (camEnabled) {
+            camButton.classList.remove('off');
+            camButton.classList.add('on');
+            camButton.textContent = 'CAM ✓';
+
+            // R ve L TUTAÇLARINI GİZLE
+            rHandle.style.display = 'none';
+            lHandle.style.display = 'none';
+
+        } else {
+            camButton.classList.remove('on');
+            camButton.classList.add('off');
+            camButton.textContent = 'CAM';
+
+            // R ve L TUTAÇLARINI GERİ GÖSTER
+            rHandle.style.display = 'flex';
+            lHandle.style.display = 'flex';
+        }
+
+        draw(); // Çizimleri yenile
+    }
+
+    function changeCamDiameter(delta) {
+        camDiameterMM = Math.max(20, Math.min(100, camDiameterMM + delta));
+        document.getElementById('cam-diameter-input').value = camDiameterMM;
+        draw();
+    }
+
+    // PROGRESSIVE ŞEKİL ÇİZİM FONKSİYONU
+    function drawProgressiveShape(points, radiusPixels, centerX, centerY) {
+        if (points.length < 3) return;
+
+        ctx.save();
+
+        // Cam çerçevesi içinde kal
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, radiusPixels, 0, Math.PI * 2);
+        ctx.clip();
+
+        // Noktaları gerçek koordinatlara çevir
+        const realPoints = points.map(p => ({
+            x: centerX + radiusPixels * p.x,
+            y: centerY + radiusPixels * p.y
+        }));
+
+        // Şekli çiz
+        ctx.beginPath();
+        ctx.moveTo(realPoints[0].x, realPoints[0].y);
+
+        // Yumuşak eğriler
+        for (let i = 0; i < realPoints.length - 1; i++) {
+            const current = realPoints[i];
+            const next = realPoints[i + 1];
+            const midX = (current.x + next.x) / 2;
+            const midY = (current.y + next.y) / 2;
+            ctx.quadraticCurveTo(current.x, current.y, midX, midY);
+        }
+
+        // Son nokta ile ilk nokta arasını bağla
+        const last = realPoints[realPoints.length - 1];
+        const first = realPoints[0];
+        const midX = (last.x + first.x) / 2;
+        const midY = (last.y + first.y) / 2;
+        ctx.quadraticCurveTo(last.x, last.y, midX, midY);
+        ctx.quadraticCurveTo(first.x, first.y, first.x, first.y);
+        ctx.closePath();
+
+        // Gri renk ile boya
+        ctx.fillStyle = 'rgba(180, 180, 180, 0.6)';
+        ctx.fill();
+
+        ctx.restore();
+    }
+
+    // MIRROR FONKSİYONU
+    function mirrorPoints(points) {
+        return points.map(p => ({
+            x: -p.x,
+            y: p.y
+        }));
+    }
+
+
+
+
+
+    function applyGlassesEffect() {
+        if (!camEnabled || !isCalibrated || !loadedImage) return;
+
+        // currentProgressiveDesign kontrolü ekle
+        if (!currentProgressiveDesign) {
+            console.warn('No progressive design selected');
+            return;
+        }
+
+        const selectedDesign = progressiveDesigns[currentProgressiveDesign];
+
+        // Seçili tasarımın varlığını kontrol et
+        if (!selectedDesign || !Array.isArray(selectedDesign)) {
+            console.warn('Invalid progressive design:', currentProgressiveDesign);
+            return;
+        }
+
+        const pixelToMM = calibrationMM / calibrationPixels;
+        const radiusPixels = (camDiameterMM / 2) / pixelToMM;
+
+        // Orijinal resmi çiz
+        ctx.drawImage(
+            loadedImage,
+            imageScale.x,
+            imageScale.y,
+            imageScale.width,
+            imageScale.height
+        );
+
+        // Sol damla (resimde sağ göz)
+        drawProgressiveShape(selectedDesign, radiusPixels, camX, camY);
+
+        // Sağ damla (mirror)
+        const rightDesign = mirrorPoints(selectedDesign);
+        drawProgressiveShape(rightDesign, radiusPixels, camX, camY);
+
+        // Cam çerçevesini çiz
+        drawGlassFrame(camX, camY, radiusPixels);
+    }
+
+
+
+
+
+
+
+
+
+    function drawGlassFrame(x, y, radiusPixels) {
+        // Metal çerçeve efekti
+        ctx.strokeStyle = '#8B8B8B';
+        ctx.lineWidth = 5;
+        ctx.beginPath();
+        ctx.arc(x, y, radiusPixels, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // İç kenarda ışık yansıması
+        ctx.strokeStyle = '#B8B8B8';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(x, y, radiusPixels - 2, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Dış kenarda gölge
+        ctx.strokeStyle = '#696969';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(x, y, radiusPixels + 2, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Progressive lens işaretleri
+        ctx.strokeStyle = 'rgb(249, 253, 0)';
+        ctx.lineWidth = 1.5;
+
+        // Üstte yarım daire
+        const offsetYd = 5; // 5px yukarı taşı
+
+        ctx.beginPath();
+        //ctx.arc(x, y - radiusPixels * 0.2, radiusPixels * 0.15, 0, Math.PI, true); // yarım daire
+        ctx.arc(x, (y - offsetYd) - radiusPixels * 0.2, radiusPixels * 0.15, +0.7, Math.PI - 0.7, true);
+        ctx.stroke();
+
+        // Ortada yatay çizgi
+        const lineLength = radiusPixels * 0.8; // yatay uzun sarı çizgi * 0.9 daha uzun
+        ctx.beginPath();
+        ctx.moveTo(x - lineLength, y);
+        ctx.lineTo(x + lineLength, y);
+        ctx.stroke();
+
+        // Artı işareti (+)
+        const offsetY = 20; // 20px yukarı taşı
+
+        // Dikey çizgi
+        ctx.beginPath();
+        ctx.moveTo(x, (y - offsetY) - radiusPixels * 0.05);
+        ctx.lineTo(x, (y - offsetY) + radiusPixels * 0.05);
+        ctx.stroke();
+
+        // Yatay çizgi
+        ctx.beginPath();
+        ctx.moveTo(x - radiusPixels * 0.05, y - offsetY);
+        ctx.lineTo(x + radiusPixels * 0.05, y - offsetY);
+        ctx.stroke();
+
+        // Yatay çizgi sonundaki Sol daire
+        ctx.beginPath();
+        ctx.arc(x - lineLength - radiusPixels * 0.08, y, radiusPixels * 0.02, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Yatay çizgi sonundaki Sağ daire
+        ctx.beginPath();
+        ctx.arc(x + lineLength + radiusPixels * 0.08, y, radiusPixels * 0.02, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Altta büyük daire
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(x + 15, y + radiusPixels * 0.40, radiusPixels * 0.10, 0, Math.PI * 2);
+        //ctx.stroke();
+
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+
+        const newRadius = radiusPixels * 0.20;  // önce 0.10 → şimdi 0.15 ile daha uzun
+        const centerY = y + radiusPixels * 0.45; // merkez konumu aynı kalabilir veya biraz yukarı çekilebilir
+
+
+        /*
+                // SOL PARANTEZ: (
+                ctx.beginPath();
+                ctx.arc(
+                    x + 40,              // merkez X
+                    centerY,             // merkez Y
+                    newRadius,           // yarıçap
+                    Math.PI * 0.9,       // başlangıç açısı
+                    Math.PI * 1.1,       // bitiş açısı (0.8 + 0.4 = 1.2)
+                    false
+                );
+                ctx.stroke();
+        
+                // SAĞ PARANTEZ: )
+                ctx.beginPath();
+                ctx.arc(
+                    x + 10,              // merkez X
+                    centerY,             // merkez Y
+                    newRadius,           // yarıçap
+                    Math.PI * 1.9,       // başlangıç açısı (veya -0.2)
+                    Math.PI * 0.1,       // bitiş açısı (1.8 - 1.6 = 0.2, fark yine 0.4)
+                    false
+                );
+                ctx.stroke();
+        */
+
+
+        ctx.beginPath();
+        ctx.moveTo(50, 50);
+        ctx.lineTo(150, 50);
+        ctx.stroke();  // Çizgiyi çiz
+
+        ctx.beginPath();  // Yeni çizim başlat
+        ctx.arc(x + 15, y + radiusPixels * 0.40, radiusPixels * 0.08, 0, Math.PI * 2);
+        //ctx.fill(); // Daireyi doldur
+        ctx.stroke(); // Daireyi çiz
+
+
+
+
+
+        /*
+        ctx.beginPath();      // Yeni çizim başlat
+        ctx.moveTo(50, 50);   // Başlangıç noktasınıbelirle
+        ctx.lineTo(150, 50);  // Bu noktaya kadar çizgi çiz(SONRAKİ linTo ya moveTo görevide yapar!)
+        ctx.stroke();         // Çizimi görünür hale getir
+
+
+        ctx.arc(x + 15, y + radiusPixels * 0.40, radiusPixels * 0.10, 0, Math.PI * 2);
+
+        Parametre	                Açıklama	               Örnekteki Değeri	                    Etkisi
+            x	        Dairenin merkezinin X (yatay) konumu	    x + 15	                    Daireyi 15px sağa kaydırır
+            y	        Dairenin merkezinin Y (dikey) konumu	    y + radiusPixels * 0.40	    Daireyi 0.4 yarıçap kadar aşağı taşır
+            radius	    Dairenin yarıçapı	                        radiusPixels * 0.10	        Dairenin büyüklüğünü belirler
+            startAngle	Başlangıç açısı (radyan)	                0	                        Dairenin sağ tarafından çizmeye başlar
+            endAngle	Bitiş açısı (radyan)	                    Math.PI * 2	                Tam tur (360°) çizer
+            anticlockwise (isteğe bağlı)	Saat yönü tersi çizim	yok → varsayılan false	    Tam dairede fark etmez, yaylarda yönü belirler       
+        */
+    }
+
+
+
+
+    function startCamDrag(e) {
+        if (!camEnabled) return;
+
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+
+        // Canvas koordinatlarına dönüştür
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        const canvasX = x * scaleX;
+        const canvasY = y * scaleY;
+
+        const pixelToMM = calibrationMM / calibrationPixels;
+        const radiusPixels = (camDiameterMM / 2) / pixelToMM;
+
+        // Cam içinde mi kontrol et
+        const dist = Math.sqrt(Math.pow(canvasX - camX, 2) + Math.pow(canvasY - camY, 2));
+        if (dist <= radiusPixels) {
+            isCamDragging = true;
+            camDragOffsetX = canvasX - camX;
+            camDragOffsetY = canvasY - camY;
+        }
+    }
+
+    function dragCam(e) {
+        if (!isCamDragging || !camEnabled) return;
+
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+
+        // Canvas koordinatlarına dönüştür
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        const canvasX = x * scaleX;
+        const canvasY = y * scaleY;
+
+        camX = canvasX - camDragOffsetX;
+        camY = canvasY - camDragOffsetY;
+
+        draw();
+    }
+
+    function endCamDrag() {
+        isCamDragging = false;
+    }
+
+    // ----------------------------------------------------
+    // ÖLÇÜM HESAPLAMA FONKSİYONLARI - DÜZELTİLMİŞ
+    // ----------------------------------------------------
+    // Grafik çizim fonksiyonu - DÜZELTİLMİŞ
+    function drawDistanceGraphic(canvasId, dx, dy, dxMM, dyMM, color) {
+        const canvas = document.getElementById(canvasId);
+        if (!canvas) return;
+
+        const ctx = canvas.getContext('2d');
+        const width = canvas.width = canvas.offsetWidth;
+        const height = canvas.height = canvas.offsetHeight;
+
+        ctx.clearRect(0, 0, width, height);
+
+        // Merkez noktası
+        const centerX = width / 2;
+        const centerY = height / 2;
+        const pointRadius = 2;
+
+        // ÖNEMLİ: Piksel değerlerini kullan, mm değil!
+        // dx ve dy zaten piksel cinsinden geliyor
+
+        // Ölçekleme faktörü - grafik alanına sığdırmak için
+        const maxPixelDistance = Math.max(Math.abs(dx), Math.abs(dy), 1);
+
+        // Güvenli ölçekleme - grafik sınırlarını aşmasın
+        const maxGraphWidth = width / 2 - 40;
+        const maxGraphHeight = height / 2 - 20;
+
+        let scale;
+        if (maxPixelDistance > 0) {
+            const scaleX = maxGraphWidth / Math.abs(dx || 1);
+            const scaleY = maxGraphHeight / Math.abs(dy || 1);
+            scale = Math.min(scaleX, scaleY, 1); // Maksimum 1 (gerçek boyut)
+
+            // Eğer çok küçükse biraz büyüt
+            if (scale * maxPixelDistance < 30) {
+                scale = 30 / maxPixelDistance;
+            }
+        } else {
+            scale = 1;
+        }
+
+        // Hedef nokta - ÖLÇEKLENMİŞ piksel değerleri
+        const targetX = centerX + (dx * scale);
+        const targetY = centerY - (dy * scale); // Y eksenini ters çevir
+
+        // Ok çizimi - X ekseni
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.setLineDash([]);
+        ctx.beginPath();
+        ctx.moveTo(centerX, centerY);
+        ctx.lineTo(targetX, centerY);
+        ctx.stroke();
+
+        // X ok başı
+        drawArrowHeadSmall(ctx, targetX, centerY, 8, dx > 0 ? 0 : 180, color);
+
+        // X mesafe yazısı - GERÇEK MM DEĞER
+        ctx.fillStyle = color;
+        ctx.font = 'bold 14px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        const xTextY = dy > 0 ? centerY + 18 : centerY - 18;
+        ctx.fillText(`${dxMM} mm`, (centerX + targetX) / 2, xTextY);
+
+        // Ok çizimi - Y ekseni
+        ctx.beginPath();
+        ctx.moveTo(centerX, centerY);
+        ctx.lineTo(centerX, targetY);
+        ctx.stroke();
+
+        // Y ok başı
+        drawArrowHeadSmall(ctx, centerX, targetY, 8, dy > 0 ? 270 : 90, color);
+
+        // Y mesafe yazısı - GERÇEK MM DEĞER
+        const yTextX = dx > 0 ? centerX - 36 : centerX + 36;
+        ctx.fillText(`${dyMM} mm`, yTextX, (centerY + targetY) / 2);
+
+        // Merkez noktası (çerçeve merkezi) - yeşil
+        ctx.fillStyle = '#00ff00';
+        ctx.shadowBlur = 5;
+        ctx.shadowColor = '#00ff00';
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, pointRadius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+
+        // Hedef nokta (tutamaç) - renkli
+        ctx.fillStyle = color;
+        ctx.shadowBlur = 5;
+        ctx.shadowColor = color;
+        ctx.beginPath();
+        ctx.arc(targetX, targetY, pointRadius - 1, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+    }
+
+
+    // Küçük ok başı çizimi - GÜNCELLENMİŞ
+    function drawArrowHeadSmall(ctx, x, y, size, angleDeg, color) {
+        const angleRad = angleDeg * Math.PI / 180;
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(angleRad);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 1.5;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(-size, -size / 2);
+        ctx.moveTo(0, 0);
+        ctx.lineTo(-size, size / 2);
+        ctx.stroke();
+        ctx.restore();
+    }
+
+    // calculateMeasurements fonksiyonunu güncelle
+    function calculateMeasurements() {
+        if (!isCalibrated) {
+            document.getElementById('right-pd-result').textContent = '-- --';
+            document.getElementById('left-pd-result').textContent = '-- --';
+            document.getElementById('right-montage-result').textContent = '-- --';
+            document.getElementById('left-montage-result').textContent = '-- --';
+
+            // Grafikleri temizle
+            const rCanvas = document.getElementById('r-graphic-canvas');
+            const lCanvas = document.getElementById('l-graphic-canvas');
+            if (rCanvas) rCanvas.getContext('2d').clearRect(0, 0, rCanvas.width, rCanvas.height);
+            if (lCanvas) lCanvas.getContext('2d').clearRect(0, 0, lCanvas.width, lCanvas.height);
+
+            return;
+        }
+
+        const pixelToMM = calibrationMM / calibrationPixels;
+
+        const centerX = (leftLineX + rightLineX) / 2;
+
+        const rightPDPixels = Math.abs(rLineX - centerX);
+        const rightPDMM = rightPDPixels * pixelToMM;
+
+        const leftPDPixels = Math.abs(lLineX - centerX);
+        const leftPDMM = leftPDPixels * pixelToMM;
+
+        // Montaj yükseklikleri hesapla
+        const lineHeight = 100;
+        const rCrossTop = rLineY - lineHeight - 20;
+        const lCrossTop = lLineY - lineHeight - 20;
+
+        const rightMontageHeightPixels = Math.abs(bottomLineY - rCrossTop);
+        const rightMontageHeightMM = rightMontageHeightPixels * pixelToMM;
+
+        const leftMontageHeightPixels = Math.abs(bottomLineY - lCrossTop);
+        const leftMontageHeightMM = leftMontageHeightPixels * pixelToMM;
+
+        // Footer'a yazdır
+        document.getElementById('right-pd-result').textContent = rightPDMM.toFixed(2).replace('.', ',') + ' mm';
+        document.getElementById('left-pd-result').textContent = leftPDMM.toFixed(2).replace('.', ',') + ' mm';
+        document.getElementById('right-montage-result').textContent = rightMontageHeightMM.toFixed(2).replace('.', ',') + ' mm';
+        document.getElementById('left-montage-result').textContent = leftMontageHeightMM.toFixed(2).replace('.', ',') + ' mm';
+
+        // R ve L tutamaçlarının merkezden uzaklığı
+        const rDX = rLineX - solCerceveMerkezX;
+        const rDY = solCerceveMerkezY - rCrossTop;
+        const rDistanceXMM = (Math.abs(rDX) * pixelToMM).toFixed(2);
+        const rDistanceYMM = (Math.abs(rDY) * pixelToMM).toFixed(2);
+
+        const lDX = lLineX - sagCerceveMerkezX;
+        const lDY = sagCerceveMerkezY - lCrossTop;
+        const lDistanceXMM = (Math.abs(lDX) * pixelToMM).toFixed(2);
+        const lDistanceYMM = (Math.abs(lDY) * pixelToMM).toFixed(2);
+
+        // Grafikleri çiz
+        drawDistanceGraphic('r-graphic-canvas', rDX, rDY, rDistanceXMM, rDistanceYMM, '#ff66aa');
+        drawDistanceGraphic('l-graphic-canvas', lDX, lDY, lDistanceXMM, lDistanceYMM, '#66aaff');
+    }
+
+
+    // ----------------------------------------------------
+    // CANVAS BOYUTLANDIRMA VE HANDLE FONKSİYONLARI
+    // ----------------------------------------------------
+
+    function resizeCanvas() {
+        // ============================================
+        // FOOTER BOYUTLANDIRMA
+        // ============================================
+        const footerHeight = 150;
+        const footer = document.getElementById('info-footer');
+        footer.style.height = footerHeight + 'px';
+        footer.style.minHeight = footerHeight + 'px';
+        footer.style.maxHeight = footerHeight + 'px';
+
+        // ============================================
+        // CANVAS ALAN BOYUTLANDIRMA
+        // ============================================
+        canvasArea.style.height = window.innerHeight + 'px';
+        canvasArea.style.maxHeight = window.innerHeight + 'px';
+        canvasArea.style.minHeight = window.innerHeight + 'px';
+
+        const rect = canvasArea.getBoundingClientRect();
+        canvas.width = rect.width;
+        canvas.height = rect.height;
+
+        // ============================================
+        // HANDLE BAŞLANGIÇ POZİSYONLARI
+        // ============================================
+        if (leftLineX === 0) {
+
+            // ----------------------------------------
+            // YATAY POZİSYONLAR (X EKSENİ)
+            // ----------------------------------------
+            leftLineX = canvas.width * 0.25;   // Kırmızı dikey çizgi
+            rightLineX = canvas.width * 0.75;  // Mavi dikey çizgi
+            rLineX = canvas.width * 0.4;       // R tutamacı
+            lLineX = canvas.width * 0.6;       // L tutamacı
+
+            // ----------------------------------------
+            // DİKEY POZİSYONLAR (Y EKSENİ)
+            // ----------------------------------------
+
+            const headerOffset = 60;
+            const extraDownOffset = 180;
+            const footerOffset = 200;
+
+            const usableTop = headerOffset + extraDownOffset;
+            const usableBottom = canvas.height - footerOffset;
+            const usableHeight = usableBottom - usableTop;
+
+            // Yeşil ve Turuncu yatay çizgiler
+            topLineY = usableTop + (usableHeight * 0.2);
+            bottomLineY = usableTop + (usableHeight * 0.8);
+
+            // R ve L tutamaçları
+            rLineY = usableTop + (usableHeight * 0.7); // R tutamacı 0.5 daha yukarıda
+            lLineY = usableTop + (usableHeight * 0.7);
+
+            updateFrameWidth();
+        }
+
+        if (imageLoaded) {
+            calculateImageScale();
+        }
+
+        updateHandles();
+        draw();
+        calculateMeasurements();
+    }
+
+
+    // Sayfa yüklendiğinde
+    window.addEventListener('load', resizeCanvas);
+
+    window.addEventListener('resize', resizeCanvas);
+
+    function updateHandles() {
+        const canvasActualHeight = canvas.height;
+        const canvasActualWidth = canvas.width;
+
+        // ============================================
+        // DİKEY TUTAMAÇLAR (KIRMIZI 🔴 VE MAVİ 🔵)
+        // ============================================
+        // Bu tutamaçlar footer yakınında durur
+
+        const footerHeight = 150;              // Footer yüksekliği
+        const extraSpaceFromFooter = 20;       // Footer'dan boşluk
+        const verticalHandleUpOffset = -50;      // ↑ Bu değeri ARTIRIRSAN tutamaçlar YUKARI çıkar (100, 150, vs.)
+        // ↓ Bu değeri AZALTIRSAN tutamaçlar AŞAĞI iner (0, -50, -100, vs.)
+
+        // Tutamaçların Y pozisyonu
+        const verticalHandleTopY = canvasActualHeight - footerHeight - HANDLE_SIZE - OFFSET - extraSpaceFromFooter - verticalHandleUpOffset;
+
+        leftHandle.style.left = leftLineX + 'px';
+        leftHandle.style.top = verticalHandleTopY + 'px';
+
+        rightHandle.style.left = rightLineX + 'px';
+        rightHandle.style.top = verticalHandleTopY + 'px';
+
+        // ============================================
+        // YATAY TUTAMAÇLAR (YEŞİL 🟢 VE TURUNCU 🟠)
+        // ============================================
+        // Bu tutamaçlar sağ kenarda durur
+
+        const horizontalHandleLeftX = canvasActualWidth - HANDLE_SIZE - OFFSET;
+
+        topHandle.style.top = topLineY + 'px';
+        topHandle.style.left = horizontalHandleLeftX + 'px';
+
+        bottomHandle.style.top = bottomLineY + 'px';
+        bottomHandle.style.left = horizontalHandleLeftX + 'px';
+
+        // ============================================
+        // R ve L TUTAMAÇLARI
+        // ============================================
+        rHandle.style.left = rLineX + 'px';
+        rHandle.style.top = rLineY + 'px';
+
+        lHandle.style.left = lLineX + 'px';
+        lHandle.style.top = lLineY + 'px';
+
+        // ----------------------------------------
+        // ÖZET:
+        // ----------------------------------------
+        // 🔴🔵 Kırmızı ve Mavi tutamaçları:
+        //   AŞAĞI → verticalHandleUpOffset = 0 veya negatif (-50, -100)
+        //   YUKARI → verticalHandleUpOffset = 100, 150, 200
+        //
+        // 🟢🟠 Yeşil ve Turuncu çizgilerini (tutamaçları değil):
+        //   resizeCanvas() içinde topLineY ve bottomLineY'yi değiştir
+        //
+        // R L tutamaçlarını:
+        //   resizeCanvas() içinde rLineY ve lLineY'yi değiştir
+        // ----------------------------------------
+
+        /*
+        Önemli Not:    
+        updateHandles() fonksiyonu tutamaçların görsel pozisyonunu ayarlar
+        verticalHandleUpOffset parametresi sadece 🔴 Kırmızı ve 🔵 Mavi tutamaçları etkiler
+        Yeşil ve Turuncu tutamaçlar kendi çizgilerine (topLineY, bottomLineY) bağlıdır
+
+        Hızlı Test:
+        const verticalHandleUpOffset = -100;  // Kırmızı ve Mavi 100px daha aşağı
+        */
+    }
+
+
+
+    // ----------------------------------------------------
+    // CETVEL ÇİZİM FONKSİYONU
+    // ----------------------------------------------------
+
+    function drawRuler2piksel(x1, y1, x2, y2) {
+        const offset = 40; // cetveli yukarı kaydır
+        const dx = x2 - x1;
+        const dy = y2 - y1;
+        const angle = Math.atan2(dy, dx);
+        const uzunlukPX = Math.sqrt(dx * dx + dy * dy);
+
+        // Piksel olarak cetvel çiz
+        ctx.save();
+        ctx.translate(x1, y1);
+        ctx.rotate(angle);
+
+        const tickHeightSmall = 10;
+        const tickHeightMedium = 15;
+        const tickHeightLarge = 25;
+
+        for (let i = 0; i <= uzunlukPX; i += 10) { // her 10 pikselde bir çizgi
+            let tickHeight = tickHeightSmall;
+            if (i % 50 === 0) tickHeight = tickHeightLarge;
+            else if (i % 20 === 0) tickHeight = tickHeightMedium;
+
+            ctx.beginPath();
+            ctx.moveTo(i, 0);
+            ctx.lineTo(i, tickHeight);
+            ctx.lineWidth = 1;
+            ctx.strokeStyle = "rgba(255,255,255,0.8)";
+            ctx.stroke();
+        }
+
+        // Toplam uzunluğu yaz (piksel cinsinden)
+        ctx.fillStyle = "rgba(255,255,255,0.9)";
+        ctx.font = "bold 14px Arial";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "bottom";
+        ctx.fillText(`${Math.round(uzunlukPX)} px`, uzunlukPX / 2, -8);
+
+        ctx.restore();
+    }
+
+
+
+    function drawRuler(x1, y1, x2, y2) {
+        const dx = x2 - x1;
+        const dy = y2 - y1;
+        const angle = Math.atan2(dy, dx);
+        const lengthPX = Math.sqrt(dx * dx + dy * dy);
+
+        // DOĞRU ölçüm - kalibrasyon kullan (Bu değişkenlerin (isCalibrated, calibrationPixels, calibrationMM) dışarıdan tanımlı olduğu varsayılmıştır)
+        let lengthMM = isCalibrated ? (lengthPX / calibrationPixels) * calibrationMM : 0;
+
+        ctx.save();
+        ctx.translate(x1, y1);
+        ctx.rotate(angle);
+
+        // Cetvel çizgisi - ÖLÇÜLEN MESAFE KADAR ÇİZ
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(lengthPX, 0);
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = "rgba(255,255,255,0.9)";
+        ctx.stroke();
+
+        // MM bazlı cetvel çizimi - PİKSEL/MM ORANINI DOĞRU HESAPLA
+        // lengthMM sıfır ise (kalibre değilse) bölme hatasını önlemek için kontrol ekleyelim
+        const pxPerMM = lengthMM > 0 ? lengthPX / lengthMM : 0;
+
+        // Cetvelin toplam mm uzunluğu kadar çiz (65.25 mm ise 65.25 mm'lik cetvel)
+        const totalMM = Math.ceil(lengthMM);
+
+        // totalMM'den büyük bir değer için çizim yapmaya gerek yok, lengthPX yeterli
+        // const rulerLengthPX = totalMM * pxPerMM; 
+
+        for (let mm = 0; mm <= totalMM; mm += 1) { // her 1 mm'de bir çizgi
+            const currentPX = mm * pxPerMM;
+
+            // Eğer mevcut piksel ölçülen piksel uzunluğunu aşarsa döngüyü kır
+            if (currentPX > lengthPX) break;
+
+            // Çizgi yüksekliğini belirle
+            let tickHeight = 10; // kısa çizgi
+            if (mm % 10 === 0) tickHeight = 25; // 10 mm'de bir uzun çizgi
+            else if (mm % 5 === 0) tickHeight = 15; // 5 mm'de bir orta çizgi
+
+            ctx.beginPath();
+            ctx.moveTo(currentPX, 0);
+            ctx.lineTo(currentPX, tickHeight);
+            ctx.lineWidth = 1;
+            ctx.strokeStyle = "rgba(255,255,255,0.8)";
+            ctx.stroke();
+
+            // Sayı etiketleri (10 mm'de bir)
+            if (mm % 10 === 0 && mm !== 0) {
+                ctx.fillStyle = "rgba(255,255,255,0.9)";
+                ctx.font = "bold 12px Arial";
+                ctx.textAlign = "center";
+                ctx.textBaseline = "top";
+                ctx.fillText(mm.toString(), currentPX, 28);
+            }
+        }
+
+        // --- YARI SAYDAM SİYAH ZEMİN ÜZERİNE ÖLÇÜM DEĞERİ YAZIMI ---
+        if (lengthMM > 0) {
+            const textToDisplay = `${lengthMM.toFixed(2)} mm`;
+
+            ctx.font = "bold 14px Arial";
+            const textMetrics = ctx.measureText(textToDisplay);
+            const textWidth = textMetrics.width;
+
+            const FONT_HEIGHT = 14;
+            const HORIZONTAL_PADDING = 8;
+            const VERTICAL_PADDING = 4;
+            const OFFSET_FROM_RULER = 8;
+
+            const rectWidth = textWidth + HORIZONTAL_PADDING * 2;
+            const rectHeight = FONT_HEIGHT + VERTICAL_PADDING * 2;
+
+            const rectX = lengthPX / 2 - rectWidth / 2;
+            const rectY = -OFFSET_FROM_RULER - rectHeight;
+            const textY = rectY + VERTICAL_PADDING + FONT_HEIGHT / 2;
+
+            // Yeni Değer: Köşe Yuvarlatma Yarıçapı (Radius)
+            const cornerRadius = 5; // Kaç piksel yuvarlatılacağını belirler
+
+            // 1. Yuvarlatılmış Siyah Zemin Çizimi (Path Kullanarak)
+            ctx.fillStyle = "rgba(0, 0, 0, 0.7)"; // Yarı saydam siyah
+
+            ctx.beginPath();
+
+            // Yuvarlatılmış Dikdörtgen Çizimi:
+
+            // Üst-Sol köşeden başla
+            ctx.moveTo(rectX + cornerRadius, rectY);
+
+            // Üst Kenar
+            ctx.lineTo(rectX + rectWidth - cornerRadius, rectY);
+            // Üst-Sağ köşe (yay)
+            ctx.arcTo(rectX + rectWidth, rectY, rectX + rectWidth, rectY + cornerRadius, cornerRadius);
+
+            // Sağ Kenar
+            ctx.lineTo(rectX + rectWidth, rectY + rectHeight - cornerRadius);
+            // Alt-Sağ köşe (yay)
+            ctx.arcTo(rectX + rectWidth, rectY + rectHeight, rectX + rectWidth - cornerRadius, rectY + rectHeight, cornerRadius);
+
+            // Alt Kenar
+            ctx.lineTo(rectX + cornerRadius, rectY + rectHeight);
+            // Alt-Sol köşe (yay)
+            ctx.arcTo(rectX, rectY + rectHeight, rectX, rectY + rectHeight - cornerRadius, cornerRadius);
+
+            // Sol Kenar
+            ctx.lineTo(rectX, rectY + cornerRadius);
+            // Üst-Sol köşe (yay)
+            ctx.arcTo(rectX, rectY, rectX + cornerRadius, rectY, cornerRadius);
+
+            ctx.closePath();
+            ctx.fill(); // Yolu siyah renkle doldur
+
+            // 2. Beyaz Metin Yazımı
+            ctx.fillStyle = "rgba(255, 255, 255, 1.0)"; // Beyaz metin
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+
+            ctx.fillText(textToDisplay, lengthPX / 2, textY);
+        }
+        // --- BİTİŞ ---
+
+        ctx.restore();
+
+        return lengthMM;
+    }
+
+
+
+    // ----------------------------------------------------
+    // OK FONKSİYONLARI
+    // ----------------------------------------------------
+
+    function drawArrowHead(ctx, x, y, size, angleDeg, color) {
+        const angleRad = angleDeg * Math.PI / 180;
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(angleRad);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(-size, -size / 2);
+        ctx.moveTo(0, 0);
+        ctx.lineTo(-size, size / 2);
+        ctx.stroke();
+        ctx.restore();
+    }
+
+    function drawDistanceIndicator(pointX, pointY, refX, refY, color, label, pixelToMM, yOffset = 0) {
+        const arrowSize = 8;
+        const dx = refX - pointX;
+        const dy = refY - pointY;
+        const absDx = Math.abs(dx);
+        const absDy = Math.abs(dy);
+
+        // Piksel'i mm'ye çevir (ORİJİNAL koordinatlarla hesapla)
+        const dxMM = (absDx * pixelToMM).toFixed(1);
+        const dyMM = (absDy * pixelToMM).toFixed(1);
+
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 1.5;
+        ctx.font = '12px Arial';
+        ctx.fillStyle = color;
+        ctx.textAlign = 'center';
+
+        // Çizim için Y koordinatını kaydır
+        const drawPointY = pointY - yOffset;
+
+        // --- X ekseni --- (değişmedi)
+        const endX = pointX - dx;
+        ctx.beginPath();
+        ctx.moveTo(pointX, drawPointY); // drawPointY kullan
+        ctx.lineTo(endX, drawPointY);   // drawPointY kullan
+        ctx.stroke();
+        const arrowAngleX = (refX > pointX) ? 180 : 0;
+        drawArrowHead(ctx, endX, drawPointY, arrowSize, arrowAngleX, color); // drawPointY kullan
+        const textOffsetX = (refX > pointX) ? -15 : 15;
+        ctx.fillText(`${dxMM} mm`, endX + textOffsetX, drawPointY - 5); // drawPointY kullan
+
+        // --- Y ekseni --- (kaydırılmış)
+        const endY = drawPointY - dy; // drawPointY kullan
+        ctx.beginPath();
+        ctx.moveTo(pointX, drawPointY); // drawPointY kullan
+        ctx.lineTo(pointX, endY);       // drawPointY kullan
+        ctx.stroke();
+        const arrowAngleY = (refY > pointY) ? 270 : 90; // Ölçüm için orijinal pointY
+        drawArrowHead(ctx, pointX, endY, arrowSize, arrowAngleY, color);
+        const textOffsetY = (refY > pointY) ? -10 : 20;
+        ctx.fillText(`${dyMM} mm`, pointX, endY + textOffsetY);
+    }
+
+    // -----------------------------------------------------------------------**** cam seçili ise diğerleni gizleMEZ  ***------toggleCam() ve draw()-----------------------------------------------------
+    function draw2() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        if (imageLoaded && loadedImage) {
+            ctx.drawImage(
+                loadedImage,
+                imageScale.x,
+                imageScale.y,
+                imageScale.width,
+                imageScale.height
+            );
+        }
+
+        if (!isCalibrated) {
+            // Referans çizgileri
+            ctx.strokeStyle = '#ff4444'; ctx.lineWidth = 3; ctx.shadowBlur = 20; ctx.shadowColor = '#ff4444';
+            ctx.beginPath(); ctx.moveTo(leftLineX, 0); ctx.lineTo(leftLineX, canvas.height); ctx.stroke();
+
+            ctx.strokeStyle = '#4444ff'; ctx.shadowColor = '#4444ff';
+            ctx.beginPath(); ctx.moveTo(rightLineX, 0); ctx.lineTo(rightLineX, canvas.height); ctx.stroke();
+
+            ctx.strokeStyle = '#44ff44'; ctx.shadowColor = '#44ff44';
+            ctx.beginPath(); ctx.moveTo(0, topLineY); ctx.lineTo(canvas.width, topLineY); ctx.stroke();
+
+            ctx.strokeStyle = '#ffaa44'; ctx.shadowColor = '#ffaa44';
+            ctx.beginPath(); ctx.moveTo(0, bottomLineY); ctx.lineTo(canvas.width, bottomLineY); ctx.stroke();
+        }
+
+        const lineHeight = 100;
+
+        // R ve L çizgileri
+        ctx.strokeStyle = '#ff66aa'; ctx.lineWidth = 3; ctx.shadowBlur = 15; ctx.shadowColor = '#ff66aa';
+        ctx.beginPath(); ctx.moveTo(rLineX, rLineY - lineHeight); ctx.lineTo(rLineX, rLineY); ctx.stroke();
+
+        ctx.strokeStyle = '#66aaff'; ctx.shadowColor = '#66aaff';
+        ctx.beginPath(); ctx.moveTo(lLineX, lLineY - lineHeight); ctx.lineTo(lLineX, lLineY); ctx.stroke();
+
+        // Artı işaretleri ve çemberler
+        ctx.strokeStyle = 'white';
+        ctx.lineWidth = 1;
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = 'white';
+
+        const crossSize = 7;
+        const rCrossTop = rLineY - lineHeight - 20;
+        const lCrossTop = lLineY - lineHeight - 20;
+
+        // Sarı çemberler
+        ctx.strokeStyle = '#ffff00';
+        ctx.lineWidth = 2;
+        ctx.shadowBlur = 8;
+        ctx.shadowColor = '#ffff00';
+        ctx.beginPath();
+        ctx.arc(rLineX, rCrossTop, crossSize + 15, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(lLineX, lCrossTop, crossSize + 15, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Beyaz artı işaretleri       
+        ctx.strokeStyle = 'white';
+        ctx.lineWidth = 1;
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = 'white';
+        ctx.lineCap = 'round'; // Daha temiz çizgiler için
+
+
+        ctx.beginPath();
+        ctx.moveTo(rLineX - crossSize, rCrossTop);
+        ctx.lineTo(rLineX + crossSize, rCrossTop);
+        ctx.moveTo(rLineX, rCrossTop - crossSize);
+        ctx.lineTo(rLineX, rCrossTop + crossSize);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(lLineX - crossSize, lCrossTop);
+        ctx.lineTo(lLineX + crossSize, lCrossTop);
+        ctx.moveTo(lLineX, lCrossTop - crossSize);
+        ctx.lineTo(lLineX, lCrossTop + crossSize);
+        ctx.stroke();
+
+        ctx.shadowBlur = 0;
+
+        // Kalibrasyon yapıldıysa cetvel çiz
+        if (isCalibrated) {
+            drawRuler(rLineX, rCrossTop, lLineX, lCrossTop, calibrationMM);
+        }
+
+
+        // Beyaz daire tutamaçlar
+        ctx.fillStyle = 'rgba(255,255,255,0.8)';
+        const radius = 4;
+        ctx.beginPath(); ctx.arc(leftLineX, topLineY, radius, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(rightLineX, topLineY, radius, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(leftLineX, bottomLineY, radius, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(rightLineX, bottomLineY, radius, 0, Math.PI * 2); ctx.fill();
+
+        // Kalibrasyon yapıldıysa kutula
+        if (isCalibrated) {
+            kutula();
+        }
+
+        // Cam efekti uygula (eğer açıksa)
+        if (camEnabled && isCalibrated) {
+            applyGlassesEffect();
+        }
+    }
+
+    //cam seçili ise diğerleni gizler
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        if (imageLoaded && loadedImage) {
+            ctx.drawImage(
+                loadedImage,
+                imageScale.x,
+                imageScale.y,
+                imageScale.width,
+                imageScale.height
+            );
+        }
+
+        // KALİBRASYON YAPILMAMIŞSA REFERANS ÇİZGİLERİ (HER ZAMAN)
+        if (!isCalibrated) {
+            ctx.strokeStyle = '#ff4444'; ctx.lineWidth = 3; ctx.shadowBlur = 20; ctx.shadowColor = '#ff4444';
+            ctx.beginPath(); ctx.moveTo(leftLineX, 0); ctx.lineTo(leftLineX, canvas.height); ctx.stroke();
+
+            ctx.strokeStyle = '#4444ff'; ctx.shadowColor = '#4444ff';
+            ctx.beginPath(); ctx.moveTo(rightLineX, 0); ctx.lineTo(rightLineX, canvas.height); ctx.stroke();
+
+            ctx.strokeStyle = '#44ff44'; ctx.shadowColor = '#44ff44';
+            ctx.beginPath(); ctx.moveTo(0, topLineY); ctx.lineTo(canvas.width, topLineY); ctx.stroke();
+
+            ctx.strokeStyle = '#ffaa44'; ctx.shadowColor = '#ffaa44';
+            ctx.beginPath(); ctx.moveTo(0, bottomLineY); ctx.lineTo(canvas.width, bottomLineY); ctx.stroke();
+        }
+
+        // R ve L çizgileri - SADECE CAM KAPALIYSA (KALİBRASYON ÖNCESİ VE SONRASI)
+        if (!camEnabled) {
+            const lineHeight = 100;
+
+            // R ve L çizgileri
+            ctx.strokeStyle = '#ff66aa'; ctx.lineWidth = 3; ctx.shadowBlur = 15; ctx.shadowColor = '#ff66aa';
+            ctx.beginPath(); ctx.moveTo(rLineX, rLineY - lineHeight); ctx.lineTo(rLineX, rLineY); ctx.stroke();
+
+            ctx.strokeStyle = '#66aaff'; ctx.shadowColor = '#66aaff';
+            ctx.beginPath(); ctx.moveTo(lLineX, lLineY - lineHeight); ctx.lineTo(lLineX, lLineY); ctx.stroke();
+
+
+
+            const crossSize = 7;
+            const rCrossTop = rLineY - lineHeight - 20;
+            const lCrossTop = lLineY - lineHeight - 20;
+
+            // Sarı çemberler
+            ctx.strokeStyle = '#ffff00';
+            ctx.lineWidth = 2;
+            ctx.shadowBlur = 8;
+            ctx.shadowColor = '#ffff00';
+            ctx.beginPath();
+            ctx.arc(rLineX, rCrossTop, crossSize + 15, 0, Math.PI * 2);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.arc(lLineX, lCrossTop, crossSize + 15, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // Beyaz artı işaretleri
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = 2;
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = 'white';
+
+
+            ctx.beginPath();
+            ctx.moveTo(rLineX - crossSize, rCrossTop);
+            ctx.lineTo(rLineX + crossSize, rCrossTop);
+            ctx.moveTo(rLineX, rCrossTop - crossSize);
+            ctx.lineTo(rLineX, rCrossTop + crossSize);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(lLineX - crossSize, lCrossTop);
+            ctx.lineTo(lLineX + crossSize, lCrossTop);
+            ctx.moveTo(lLineX, lCrossTop - crossSize);
+            ctx.lineTo(lLineX, lCrossTop + crossSize);
+            ctx.stroke();
+
+            ctx.shadowBlur = 0;
+
+            // Cetvel - SADECE KALİBRE EDİLMİŞSE
+            if (isCalibrated) {
+                drawRuler(rLineX, rCrossTop, lLineX, lCrossTop, calibrationMM);
+            }
+
+            // Beyaz daire tutamaçlar - SADECE KALİBRE EDİLMEMİŞSE
+            if (!isCalibrated) {
+                ctx.fillStyle = 'rgba(255,255,255,0.8)';
+                const radius = 4;
+                ctx.beginPath(); ctx.arc(leftLineX, topLineY, radius, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.arc(rightLineX, topLineY, radius, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.arc(leftLineX, bottomLineY, radius, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.arc(rightLineX, bottomLineY, radius, 0, Math.PI * 2); ctx.fill();
+            }
+        }
+
+        // Kalibrasyon yapıldıysa kutula - SADECE CAM KAPALIYSA
+        if (isCalibrated && !camEnabled) {
+            kutula();
+        }
+
+        // Canvas üzerine ölçüm bilgileri yaz
+        if (isCalibrated) {
+            drawMeasurementsOnCanvas();
+        }
+
+        // Cam efekti uygula (eğer açıksa)
+        if (camEnabled && isCalibrated) {
+            applyGlassesEffect();
+        }
+
+        if (!isCalibrated) {
+            // Kutu çiz (kesikli çizgi)
+            ctx.setLineDash([10, 10]);
+            ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(leftLineX, topLineY, rightLineX - leftLineX, bottomLineY - topLineY);
+            ctx.setLineDash([]);
+        }
+    }
+
+
+    // ----------------------------------------------------
+    // SÜRÜKLEME FONKSİYONLARI
+    // ----------------------------------------------------
+
+    function startDrag(handle, e) {
+        e.preventDefault();
+        dragging = handle;
+
+        const touch = e.touches ? e.touches[0] : e;
+        const rect = canvas.getBoundingClientRect();
+        const x = touch.clientX - rect.left;
+        const y = touch.clientY - rect.top;
+
+        dragOffsetX = 0;
+        dragOffsetY = 0;
+
+        if (handle === 'left') {
+            dragOffsetX = x - leftLineX;
+        } else if (handle === 'right') {
+            dragOffsetX = x - rightLineX;
+        } else if (handle === 'top') {
+            dragOffsetY = y - topLineY;
+        } else if (handle === 'bottom') {
+            dragOffsetY = y - bottomLineY;
+        } else if (handle === 'r') {
+            dragOffsetX = x - rLineX;
+            dragOffsetY = y - rLineY;
+        } else if (handle === 'l') {
+            dragOffsetX = x - lLineX;
+            dragOffsetY = y - lLineY;
+        }
+    }
+
+    function onMove(e) {
+        if (!dragging) return;
+
+        const touch = e.touches ? e.touches[0] : e;
+        const rect = canvasArea.getBoundingClientRect();
+        const x = touch.clientX - rect.left;
+        const y = touch.clientY - rect.top;
+
+        const maxWidth = canvas.width;
+        const maxHeight = canvas.height;
+
+        if (dragging === 'left') {
+            leftLineX = Math.max(0, Math.min(x - dragOffsetX, maxWidth));
+        } else if (dragging === 'right') {
+            rightLineX = Math.max(0, Math.min(x - dragOffsetX, maxWidth));
+        } else if (dragging === 'top') {
+            topLineY = Math.max(0, Math.min(y - dragOffsetY, maxHeight));
+        } else if (dragging === 'bottom') {
+            bottomLineY = Math.max(0, Math.min(y - dragOffsetY, maxHeight));
+        } else if (dragging === 'r') {
+            rLineX = Math.max(0, Math.min(x - dragOffsetX, maxWidth));
+            rLineY = Math.max(0, Math.min(y - dragOffsetY, maxHeight));
+        } else if (dragging === 'l') {
+            lLineX = Math.max(0, Math.min(x - dragOffsetX, maxWidth));
+            lLineY = Math.max(0, Math.min(y - dragOffsetY, maxHeight));
+        }
+
+        updateHandles();
+        draw();
+        calculateMeasurements();
+
+        if (isCalibrated) {
+            kutula();
+        }
+    }
+
+    function endDrag() {
+        dragging = null;
+        dragOffsetX = 0;
+        dragOffsetY = 0;
+    }
+
+
+
+    function openGallery() {
+        document.getElementById('gallery-input').click();
+    }
+
+
+    // ----------------------------------------------------
+    // EVENT LISTENERS
+    // ----------------------------------------------------
+
+    // Galeri input event listener
+    const galleryBtn = document.getElementById('open-gallery-button');
+    const galleryInput = document.getElementById('gallery-input');
+    galleryBtn.addEventListener('click', openGallery);
+    galleryInput.addEventListener('change', handleImageUpload);
+
+
+    leftHandle.addEventListener('mousedown', (e) => startDrag('left', e));
+    leftHandle.addEventListener('touchstart', (e) => startDrag('left', e));
+    rightHandle.addEventListener('mousedown', (e) => startDrag('right', e));
+    rightHandle.addEventListener('touchstart', (e) => startDrag('right', e));
+    topHandle.addEventListener('mousedown', (e) => startDrag('top', e));
+    topHandle.addEventListener('touchstart', (e) => startDrag('top', e));
+    bottomHandle.addEventListener('mousedown', (e) => startDrag('bottom', e));
+    bottomHandle.addEventListener('touchstart', (e) => startDrag('bottom', e));
+    rHandle.addEventListener('mousedown', (e) => startDrag('r', e));
+    rHandle.addEventListener('touchstart', (e) => startDrag('r', e));
+    lHandle.addEventListener('mousedown', (e) => startDrag('l', e));
+    lHandle.addEventListener('touchstart', (e) => startDrag('l', e));
+
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('touchmove', onMove);
+    document.addEventListener('mouseup', endDrag);
+    document.addEventListener('touchend', endDrag);
+
+    const ekartmanMinus = document.getElementById('ekartman-minus');
+    const ekartmanPlus = document.getElementById('ekartman-plus');
+    const kopruMinus = document.getElementById('kopru-minus');
+    const kopruPlus = document.getElementById('kopru-plus');
+
+    ekartmanMinus.addEventListener('mousedown', (e) => startChange(-1, 'ekartman', e));
+    ekartmanMinus.addEventListener('touchstart', (e) => startChange(-1, 'ekartman', e));
+    ekartmanPlus.addEventListener('mousedown', (e) => startChange(1, 'ekartman', e));
+    ekartmanPlus.addEventListener('touchstart', (e) => startChange(1, 'ekartman', e));
+
+    kopruMinus.addEventListener('mousedown', (e) => startChange(-1, 'kopru', e));
+    kopruMinus.addEventListener('touchstart', (e) => startChange(-1, 'kopru', e));
+    kopruPlus.addEventListener('mousedown', (e) => startChange(1, 'kopru', e));
+    kopruPlus.addEventListener('touchstart', (e) => startChange(1, 'kopru', e));
+
+    const calibrateBtn = document.getElementById('calibrate-button');
+    calibrateBtn.addEventListener('click', calibrate);
+
+    const cameraBtn = document.getElementById('open-camera-button');
+    const cameraInput = document.getElementById('camera-input');
+    cameraBtn.addEventListener('click', openCamera);
+    cameraInput.addEventListener('change', handleImageUpload);
+
+    // CAM EVENT LISTENERS
+    const camToggleBtn = document.getElementById('cam-toggle-button');
+    const camDiameterMinus = document.getElementById('cam-diameter-minus');
+    const camDiameterPlus = document.getElementById('cam-diameter-plus');
+
+    camToggleBtn.addEventListener('click', toggleCam);
+    camDiameterMinus.addEventListener('click', () => changeCamDiameter(-1));
+    camDiameterPlus.addEventListener('click', () => changeCamDiameter(1));
+
+    // Cam sürükleme event listener'ları
+    canvas.addEventListener('mousedown', startCamDrag);
+    canvas.addEventListener('mousemove', dragCam);
+    canvas.addEventListener('mouseup', endCamDrag);
+    canvas.addEventListener('mouseleave', endCamDrag);
+
+
+    // fullscreen butonu
+    /*
+    const fullscreenBtn = document.getElementById('fullscreen-btn');
+
+    fullscreenBtn.addEventListener('click', () => {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch(err => {
+                console.error(`Tam ekran hatası: ${err.message}`);
+            });
+        } else {
+            document.exitFullscreen();
+        }
+    });
+    */
+
+    // Sayfa yenileme butonu
+    document.getElementById('reload-btn').addEventListener('click', () => {
+        location.reload();
+
+    });
+
+
+
+    // SADECE CAM İÇİN TOUCH EVENT'LER - DİĞER NESNELERİ BOZMAZ
+    canvas.addEventListener('touchstart', function (e) {
+        if (!camEnabled) return; // Cam kapalıysa diğer touch event'ler çalışsın
+
+        e.preventDefault();
+        const touch = e.touches[0];
+        const rect = canvas.getBoundingClientRect();
+
+        // Touch koordinatlarını al
+        const x = touch.clientX - rect.left;
+        const y = touch.clientY - rect.top;
+
+        // Canvas koordinatlarına dönüştür
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        const canvasX = x * scaleX;
+        const canvasY = y * scaleY;
+
+        const pixelToMM = calibrationMM / calibrationPixels;
+        const radiusPixels = (camDiameterMM / 2) / pixelToMM;
+
+        // SADECE CAM içinde mi kontrol et
+        const dist = Math.sqrt(Math.pow(canvasX - camX, 2) + Math.pow(canvasY - camY, 2));
+        if (dist <= radiusPixels) {
+            isCamDragging = true;
+            camDragOffsetX = canvasX - camX;
+            camDragOffsetY = canvasY - camY;
+
+            // Hemen draw çağır ki feedback olsun
+            draw();
+
+            // Diğer touch event'lerin çalışmasını ENGELLE
+            e.stopPropagation();
+        }
+    });
+
+    canvas.addEventListener('touchmove', function (e) {
+        if (!isCamDragging || !camEnabled) return;
+
+        e.preventDefault();
+        const touch = e.touches[0];
+        const rect = canvas.getBoundingClientRect();
+
+        // Touch koordinatlarını al
+        const x = touch.clientX - rect.left;
+        const y = touch.clientY - rect.top;
+
+        // Canvas koordinatlarına dönüştür
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        const canvasX = x * scaleX;
+        const canvasY = y * scaleY;
+
+        // Cam pozisyonunu güncelle
+        camX = canvasX - camDragOffsetX;
+        camY = canvasY - camDragOffsetY;
+
+        // Ekranı güncelle
+        draw();
+
+        // Diğer touch event'lerin çalışmasını ENGELLE
+        e.stopPropagation();
+    });
+
+    canvas.addEventListener('touchend', function (e) {
+        if (isCamDragging) {
+            e.preventDefault();
+            isCamDragging = false;
+            e.stopPropagation();
+        }
+    });
+
+    canvas.addEventListener('touchcancel', function (e) {
+        if (isCamDragging) {
+            e.preventDefault();
+            isCamDragging = false;
+            e.stopPropagation();
+        }
+    });
+
+    document.getElementById('progressive-design-select').addEventListener('change', function (e) {
+        const selectedValue = e.target.value;
+
+        if (selectedValue && progressiveDesigns[selectedValue]) {
+            currentProgressiveDesign = selectedValue;
+            console.log('Progressive tasarım değiştirildi:', selectedValue);
+
+            // Eğer cam açıksa, hemen çizimi güncelle
+            if (camEnabled) {
+                draw();
+            }
+
+            // Seçim yapıldığında cam'ı otomatik aç (opsiyonel)
+            if (!camEnabled) {
+                toggleCam();
+            }
+        } else {
+            console.warn('Geçersiz tasarım seçildi:', selectedValue);
+            // Varsayılan değere dön
+            currentProgressiveDesign = 'standart';
+            e.target.value = 'standart';
+        }
+    });
+
+    // Sayfa yüklendiğinde elementleri kontrol et
+    window.addEventListener('load', function () {
+        console.log('Progressive selector element:', document.getElementById('progressiveSelector'));
+        console.log('Cam container element:', document.getElementById('camToggleContainer'));
+
+        // Varsayılan tasarımı ayarla
+        currentProgressiveDesign = 'standart';
+        const selectElement = document.getElementById('progressive-design-select');
+        if (selectElement) {
+            selectElement.value = 'standart';
+        }
+    });
+
+
+
+
+    document.getElementById('save-button').addEventListener('click', function () {
+        const patientName = document.getElementById('patient-name-input').value.trim();
+        if (!patientName) {
+            alert('⚠️ Lütfen hasta adı soyadı girin!');
+            return;
+        }
+        if (!isCalibrated) {
+            alert('⚠️ Lütfen önce kalibrasyon yapın!');
+            return;
+        }
+
+        // Yeni bir canvas oluştur
+        const exportCanvas = document.createElement('canvas');
+        const exportCtx = exportCanvas.getContext('2d');
+
+        // Canvas boyutları
+        exportCanvas.width = canvas.width;
+        exportCanvas.height = canvas.height;
+
+        // Arka plan
+        exportCtx.fillStyle = '#1a1a1a';
+        exportCtx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
+
+        // Mevcut canvas'ı çiz
+        exportCtx.drawImage(canvas, 0, 0);
+
+        // HEADER BİLGİLERİNİ ÇİZ (Üst kısım)
+        exportCtx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        exportCtx.fillRect(0, 0, exportCanvas.width, 60);
+
+        // Hasta adını sol üst köşeye ekle
+        exportCtx.fillStyle = 'white';
+        exportCtx.font = 'bold 28px Arial';
+        exportCtx.textAlign = 'left';
+        exportCtx.fillText(patientName, 20, 35);
+
+        // Tarih ve saat ekle (sağ üst)
+        const now = new Date();
+        const dateStr = now.toLocaleDateString('tr-TR');
+        const timeStr = now.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+        exportCtx.font = 'bold 20px Arial';
+        exportCtx.textAlign = 'right';
+        exportCtx.fillText(`${dateStr} ${timeStr}`, exportCanvas.width - 20, 35);
+
+        // FOOTER BİLGİLERİNİ ÇİZ (Alt kısım)
+        const footerStartY = exportCanvas.height - 160; // Optimized height
+        exportCtx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        exportCtx.fillRect(0, footerStartY, exportCanvas.width, 160);
+
+        exportCtx.textAlign = 'left'; // Text align'ı tekrar left yap
+
+        // Sol taraftaki ölçüm değerleri
+        exportCtx.fillStyle = '#ff66aa';
+        exportCtx.font = 'bold 13px Arial';
+        exportCtx.fillText(`Sağ PD: ${document.getElementById('right-pd-result').textContent}`, 20, footerStartY + 25);
+        exportCtx.fillText(`Sağ Montaj Yük.: ${document.getElementById('right-montage-result').textContent}`, 20, footerStartY + 50);
+
+        exportCtx.fillStyle = '#66aaff';
+        exportCtx.fillText(`Sol PD: ${document.getElementById('left-pd-result').textContent}`, 20, footerStartY + 75);
+        exportCtx.fillText(`Sol Montaj Yük.: ${document.getElementById('left-montage-result').textContent}`, 20, footerStartY + 100);
+
+        exportCtx.fillStyle = 'white';
+        exportCtx.font = 'bold 14px Arial';
+        const pixelToMM = calibrationMM / calibrationPixels;
+        const widthPixels = Math.abs(rightLineX - leftLineX) - 3;
+        const widthMM = (widthPixels * pixelToMM).toFixed(2).replace('.', ',');
+        const heightPixels = Math.abs(bottomLineY - topLineY) - 3;
+        const heightMM = (heightPixels * pixelToMM).toFixed(2).replace('.', ',');
+        exportCtx.fillText(`Genişlik: ${widthMM} mm | Yükseklik: ${heightMM} mm`, 20, footerStartY + 125);
+
+        // R grafiğini çiz
+        const rCanvas = document.getElementById('r-graphic-canvas');
+        if (rCanvas) {
+            const rGraphicX = 400;                  // Grafiğin sol kenardan uzaklığı
+            const rGraphicY = footerStartY + 15;    // Grafiğin üstten uzaklığı
+            const rGraphicWidth = 225;              // GENİŞLİK - BURAYI ARTIR
+            const rGraphicHeight = 150;             // YÜKSEKLİK - BURAYI ARTIR
+            exportCtx.drawImage(rCanvas, rGraphicX, rGraphicY, rGraphicWidth, rGraphicHeight);
+        }
+
+        // L grafiğini çiz
+        const lCanvas = document.getElementById('l-graphic-canvas');
+        if (lCanvas) {
+            const lGraphicX = 600;                   // Grafiğin sol kenardan uzaklığı - R grafiğinin yanında olması için
+            const lGraphicY = footerStartY + 15;     // Grafiğin üstten uzaklığı
+            const lGraphicWidth = 225;               // GENİŞLİK - BURAYI ARTIR
+            const lGraphicHeight = 150;              // YÜKSEKLİK - BURAYI ARTIR
+            exportCtx.drawImage(lCanvas, lGraphicX, lGraphicY, lGraphicWidth, lGraphicHeight);
+        }
+
+        // İndir
+        const dataURL = exportCanvas.toDataURL('image/png');
+        const link = document.createElement('a');
+        link.download = `${patientName}.png`;
+        link.href = dataURL;
+        link.click();
+        //  alert(`✓ ${patientName} için ölçüm kaydedildi!`);
+    });
+
+    document.getElementById('save-base-button').addEventListener('click', function () {
+    const patientName = document.getElementById('patient-name-input').value.trim();
+    if (!patientName) {
+        alert('⚠️ Lütfen hasta adı soyadı girin!');
+        return;
+    }
+    if (!loadedImage) {
+        alert('⚠️ Resim yüklenmemiş!');
+        return;
+    }
+
+    const originalCanvas = document.createElement('canvas');
+    const originalCtx = originalCanvas.getContext('2d');
+    
+    originalCanvas.width = canvas.width;
+    originalCanvas.height = canvas.height;
+    
+    // Arka plan
+    originalCtx.fillStyle = '#1a1a1a';
+    originalCtx.fillRect(0, 0, originalCanvas.width, originalCanvas.height);
+    
+    // Canvas'taki gibi aynı ölçek ve pozisyonla çiz
+    originalCtx.drawImage(
+        loadedImage,
+        imageScale.x,
+        imageScale.y,
+        imageScale.width,
+        imageScale.height
+    );
+    
+    // Baz resmi indir
+    const originalDataURL = originalCanvas.toDataURL('image/png');
+    const link = document.createElement('a');
+    link.download = `${patientName}_bazImg.png`;
+    link.href = originalDataURL;
+    link.click();
+});
+
+    // Footer toggle butonu
+    document.getElementById('footer-toggle').addEventListener('click', function () {
+        const footer = document.getElementById('info-footer');
+        const toggleBtn = document.getElementById('footer-toggle');
+
+        footerCollapsed = !footerCollapsed;
+
+        if (footerCollapsed) {
+            footer.classList.add('collapsed');
+            toggleBtn.textContent = '▲';
+            toggleBtn.title = 'Footer Aç';
+        } else {
+            footer.classList.remove('collapsed');
+            toggleBtn.textContent = '▼';
+            toggleBtn.title = 'Footer Kapa';
+        }
+    });
+
+    resizeCanvas();
+</script>
+</body>
+
+</html>
