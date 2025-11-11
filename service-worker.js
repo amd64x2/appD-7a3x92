@@ -1,7 +1,7 @@
 const CACHE_NAME = 'myapp-cache-v1';
 const FILES_TO_CACHE = [
-  './pd39.html',
-  './manifest.json'
+  '/appD-7a3x92/pd39.html',
+  '/appD-7a3x92/manifest.json'
 ];
 
 // Kurulum (install)
