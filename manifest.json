@@ -2,7 +2,7 @@
   "name": "Çizgi Kontrol Paneli",
   "short_name": "ÇizgiApp",
   "start_url": "/appD-7a3x92/pd39.html",
-  "scope": "/appD-7a3x9/",
+  "scope": "/appD-7a3x92/",
   "display": "standalone",
   "orientation": "any",
   "background_color": "#111111",
@@ -16,3 +16,4 @@
     }
   ]
 }
+
