@@ -1,8 +1,8 @@
 {
-    "name": "Uygulamam",
-    "short_name": "App",
-    "start_url": "pdTool-39.html",
-    "display": "standalone",
-    "background_color": "#ffffff",
-    "theme_color": "#000000"
+  "name": "Benim PWA Uygulamam",
+  "short_name": "BenimApp",
+  "start_url": "./pd39.html",
+  "display": "standalone",
+  "background_color": "#111111",
+  "theme_color": "#111111"
 }
